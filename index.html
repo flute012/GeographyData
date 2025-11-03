@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GEO數據王</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.5.0/css/flag-icon.min.css">
+    <style>
+        .country-column {
+            background-color: #edf4d3;
+        }
+
+        .alternate-column {
+            background-color: #ffe6e6;
+        }
+
+        .sort-icon {
+            cursor: pointer;
+            user-select: none;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100">
+    <div id="app" class="container mx-auto p-4">
+        <h1 class="text-3xl font-bold mb-4">GEO數據王</h1>
+
+        <div id="fileInfo" class="mb-4">
+            <p>資料更新日期: <span id="updateDate">2024/12/20</span></p>
+            <a :href="csvDownloadUrl" download="merged_country_data.csv"
+                class="text-blue-500 hover:underline">下載所有資料(CSV)</a>
+            <a href="map.html" class="text-blue-500 hover:underline">地圖</a>
+        </div>
+
+        <div class="mb-4">
+            <label for="regionSelect" class="block mb-2">選擇地區：</label>
+            <select id="regionSelect" v-model="selectedRegion" class="w-full p-2 border rounded"
+                @change="loadCountries">
+                <option value="">請選擇地區</option>
+                <option v-for="region in regions" :key="region" :value="region">{{ region }}</option>
+            </select>
+        </div>
+
+        <div v-if="selectedRegion" class="mb-4">
+            <h2 class="text-xl font-bold mb-2">選擇國家：</h2>
+            <div class="flex items-center mb-2">
+                <input type="checkbox" id="selectAll" v-model="selectAll" @change="toggleAllCountries" class="mr-2">
+                <label for="selectAll">全部</label>
+            </div>
+            <div class="flex flex-wrap">
+                <label v-for="country in countries" :key="country.name" class="mr-4 mb-2 flex items-center">
+                    <input type="checkbox" :value="country" v-model="selectedCountries" class="mr-2">
+                    <span :class="['flag-icon', `flag-icon-${country.code.toLowerCase()}`]" class="mr-1"></span>
+                    {{ country.chinese }}
+                </label>
+            </div>
+        </div>
+
+        <div v-if="selectedCountries.length" class="mb-4">
+            <h2 class="text-xl font-bold mb-2">已選擇的國家：</h2>
+            <div class="flex flex-wrap">
+                <div v-for="country in selectedCountries" :key="country.name"
+                    class="mr-2 mb-2 p-2 bg-gray-200 rounded flex items-center">
+                    <span :class="['flag-icon', `flag-icon-${country.code.toLowerCase()}`]" class="mr-1"></span>
+                    {{ country.chinese }}
+                    <button @click="removeCountry(country)" class="ml-2 text-red-500">&times;</button>
+                </div>
+            </div>
+            <button @click="clearSelectedCountries" class="mt-2 bg-red-500 text-white p-2 rounded">清除所有選擇</button>
+        </div>
+
+        <div class="mb-4">
+            <h2 class="text-xl font-bold mb-2">選擇要顯示的指標：</h2>
+            <div class="flex flex-wrap">
+                <label v-for="indicator in indicators" :key="indicator.key" class="mr-4 mb-2">
+                    <input type="checkbox" :value="indicator.key" v-model="selectedIndicators" class="mr-2">
+                    {{ indicator.label }}
+                </label>
+            </div>
+        </div>
+
+        <button @click="compareCountries" class="bg-blue-500 text-white p-2 rounded mb-4">比較</button>
+
+        <div v-if="comparisonData.length" class="overflow-x-auto">
+            <table class="w-full border-collapse border">
+                <thead>
+                    <tr>
+                        <th class="border p-2 country-column">序號</th>
+                        <th @click="sort('chinese')" class="border p-2 country-column cursor-pointer">
+                            國家/指標
+                            <span class="sort-icon">{{ getSortIcon('chinese') }}</span>
+                        </th>
+                        <th v-for="indicator in selectedIndicators" :key="indicator" @click="sort(indicator)"
+                            class="border p-2 cursor-pointer"
+                            :class="{ 'alternate-column': selectedIndicators.indexOf(indicator) % 2 !== 0 }">
+                            {{ getIndicatorLabel(indicator) }}
+                            <span class="sort-icon">{{ getSortIcon(indicator) }}</span>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="(country, index) in sortedData" :key="country.name">
+                        <td class="border p-2 text-center">{{ index + 1 }}</td>
+                        <td class="border p-2 country-column">
+                            <span :class="['flag-icon', `flag-icon-${country.code.toLowerCase()}`]" class="mr-1"></span>
+                            {{ country.chinese }} ({{ country.name }})
+                        </td>
+                        <td v-for="indicator in selectedIndicators" :key="indicator" class="border p-2"
+                            :class="{ 'alternate-column': selectedIndicators.indexOf(indicator) % 2 !== 0 }">
+                            {{ formatValue(country[indicator], indicator) }}
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        new Vue({
+            el: '#app',
+            data: {
+                regions: [],
+                selectedRegion: '',
+                countries: [],
+                selectedCountries: [],
+                indicators: [
+                    { key: 'area', label: '面積' },
+                    { key: 'population', label: '人口' },
+                    { key: 'Age dependency ratio (% of working-age population)', label: '扶養比（占勞動人口的百分比）' },
+                    { key: 'GDP (current US$)', label: '國內生產總額（美元）' },
+                    { key: 'GDP growth (annual %)', label: '國內生產總額增長率（年度百分比）' },
+                    { key: 'GDP per capita (current US$)', label: '人均國內生產總額（美元）' },
+                    { key: 'GNI per capita (current US$)', label: '人均國民總收入（美元）' },
+                    { key: 'Merchandise exports (current US$)', label: '商品出口（美元）' },
+                    { key: 'Merchandise imports (current US$)', label: '商品進口（美元）' },
+                    { key: 'Urban population (% of total)', label: '城市人口（占總人口百分比）' }
+                ],
+                selectedIndicators: [],
+                comparisonData: [],
+                countryData: null,
+                updateDate: '',
+                mergedData: null,
+                sortKey: '',
+                sortOrder: 'asc',
+                selectAll: false
+            },
+            mounted() {
+                this.loadData();
+            },
+            computed: {
+                sortedData() {
+                    const data = [...this.comparisonData];
+                    if (this.sortKey) {
+                        data.sort((a, b) => {
+                            let aValue = a[this.sortKey];
+                            let bValue = b[this.sortKey];
+
+                            if (this.sortKey === 'chinese') {
+                                aValue = a.chinese;
+                                bValue = b.chinese;
+                            }
+
+                            if (typeof aValue === 'string') {
+                                return this.sortOrder === 'asc'
+                                    ? aValue.localeCompare(bValue)
+                                    : bValue.localeCompare(aValue);
+                            } else {
+                                return this.sortOrder === 'asc'
+                                    ? aValue - bValue
+                                    : bValue - aValue;
+                            }
+                        });
+                    }
+                    return data;
+                }
+            },
+            methods: {
+                async loadData() {
+                    try {
+                        const [countryLinkResponse, mergedDataResponse] = await Promise.all([
+                            fetch('countylink.json'),
+                            fetch('data/merged_country_data.json')
+                        ]);
+                        this.countryData = await countryLinkResponse.json();
+                        this.mergedData = await mergedDataResponse.json();
+                        this.regions = Object.keys(this.countryData);
+                        this.updateDate = new Date().toISOString().split('T')[0];
+                        this.csvDownloadUrl = URL.createObjectURL(csvBlob);
+                        this.selectedIndicators = this.indicators.map(i => i.key);
+                    } catch (error) {
+                        console.error('Error loading data:', error);
+                    }
+                },
+                loadCountries() {
+                    if (this.selectedRegion && this.countryData) {
+                        this.countries = this.countryData[this.selectedRegion].countries;
+                        this.selectAll = this.countries.every(country =>
+                            this.selectedCountries.some(c => c.name === country.name)
+                        );
+                    } else {
+                        this.countries = [];
+                    }
+                },
+                toggleAllCountries() {
+                    if (this.selectAll) {
+                        this.selectedCountries = [...this.selectedCountries, ...this.countries.filter(country =>
+                            !this.selectedCountries.some(c => c.name === country.name)
+                        )];
+                    } else {
+                        this.selectedCountries = this.selectedCountries.filter(country =>
+                            !this.countries.some(c => c.name === country.name)
+                        );
+                    }
+                },
+                removeCountry(country) {
+                    this.selectedCountries = this.selectedCountries.filter(c => c !== country);
+                    if (this.selectedRegion) {
+                        this.selectAll = this.countries.every(c =>
+                            this.selectedCountries.some(sc => sc.name === c.name)
+                        );
+                    }
+                },
+                clearSelectedCountries() {
+                    this.selectedCountries = [];
+                    this.comparisonData = [];
+                    this.selectAll = false;
+                },
+                compareCountries() {
+                    this.comparisonData = this.selectedCountries.map(country => {
+                        const region = this.regions.find(r =>
+                            this.countryData[r].countries.some(c => c.name === country.name)
+                        );
+                        const mergedCountryData = this.mergedData[region].find(c => c.name === country.name);
+                        return { ...country, ...mergedCountryData };
+                    });
+                },
+                formatValue(value, indicator) {
+                    if (typeof value !== 'number') {
+                        return value;
+                    }
+
+                    if (indicator.includes('US$')) {
+                        if (value >= 1e8) {
+                            return (value / 1e8).toFixed(2) + '億美元';
+                        } else if (value >= 1e4) {
+                            return (value / 1e4).toFixed(2) + '萬美元';
+                        }
+                    }
+
+                    if (indicator === 'population') {
+                        if (value >= 1e8) {
+                            return (value / 1e8).toFixed(2) + '億';
+                        } else if (value >= 1e4) {
+                            return (value / 1e4).toFixed(2) + '萬';
+                        }
+                    }
+
+                    if (indicator === 'area') {
+                        return value.toLocaleString() + ' 平方公里';
+                    }
+
+                    return value.toFixed(2);
+                },
+                sort(key) {
+                    if (this.sortKey === key) {
+                        this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        this.sortKey = key;
+                        this.sortOrder = 'asc';
+                    }
+                },
+                getSortIcon(key) {
+                    if (this.sortKey !== key) return '⇅';
+                    return this.sortOrder === 'asc' ? '↑' : '↓';
+                },
+                getIndicatorLabel(key) {
+                    return this.indicators.find(i => i.key === key)?.label || key;
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>

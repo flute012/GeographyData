@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Updated Leaflet Countries Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <style>
+        #map { height: 100vh; width: 100%; }
+        html, body { height: 100%; margin: 0; padding: 0; }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+
+    <script>
+        let map;
+        let countries = [];
+
+        function loadCountryData() {
+            return fetch('data/merged_country_data.json')
+                .then(response => {
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Data loaded successfully');
+                    countries = Object.values(data).flat();
+                    console.log(`Loaded ${countries.length} countries`);
+                    return countries;
+                })
+                .catch(error => {
+                    console.error('Error loading country data:', error);
+                    return Promise.reject(error);
+                });
+        }
+
+        function initMap() {
+            map = L.map('map').setView([20, 0], 2);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+
+            loadCountryData().then(() => {
+                countries.forEach(country => {
+                    if (country.lat && country.lng) {
+                        const lat = parseFloat(country.lat);
+                        const lng = parseFloat(country.lng);
+                        
+                        if (isNaN(lat) || isNaN(lng)) {
+                            console.warn(`Invalid coordinates for ${country.name}: ${country.lat}, ${country.lng}`);
+                            return;
+                        }
+
+                        const marker = L.marker([lat, lng]).addTo(map);
+
+                        marker.bindPopup(`
+                            <h2>${country.chinese || ''} (${country.name})</h2>
+                            <p>首都: ${country.capital || 'N/A'}</p>
+                            <p>人口: ${(country.population || 0).toLocaleString()}</p>
+                            <p>面積: ${(country.area || 0).toLocaleString()} km²</p>
+                            <p>人均GDP: ${(country['GDP per capita (current US$)'] || 0).toLocaleString()} 美元</p>
+                            <p>人均GNI: ${(country['GNI per capita (current US$)'] || 0).toLocaleString()} 美元</p>
+                            <p>城市人口: ${(country['Urban population (% of total)'] || 0).toLocaleString()} %</p>
+                        `);
+                    }
+                });
+                console.log(`Added markers for ${countries.length} countries`);
+            }).catch(error => {
+                console.error('Error initializing map:', error);
+            });
+        }
+
+        initMap();
+    </script>
+</body>
+</html>
