@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Thinking Framework | 產品思考架構</title>
+    <style>
+        /* --- 基礎設定 --- */
+        :root {
+            --primary: #2563eb;
+            /* 專業藍 */
+            --secondary: #475569;
+            /* 深灰文字 */
+            --accent: #f59e0b;
+            /* 重點強調色 (原本便利貼的黃色轉化) */
+            --bg: #f1f5f9;
+            /* 背景色 */
+            --card-bg: #ffffff;
+            --tag-bg: #e0f2fe;
+            --tag-text: #0369a1;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+            background-color: var(--bg);
+            color: var(--secondary);
+            margin: 0;
+            padding: 40px 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* --- 標題區塊 --- */
+        header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        h1 {
+            color: #1e293b;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 800;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            color: #64748b;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        /* --- 網格佈局 --- */
+        .grid-wrapper {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            /* 3欄佈局 */
+            gap: 24px;
+        }
+
+        /* --- 卡片樣式 --- */
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            border-top: 4px solid transparent;
+            /* 預留頂部線條 */
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        /* 不同類型的卡片頂部顏色區分 */
+        .card.type-user {
+            border-top-color: #3b82f6;
+        }
+
+        /* 藍色系：使用者/目標 */
+        .card.type-problem {
+            border-top-color: #ef4444;
+        }
+
+        /* 紅色系：問題/限制 */
+        .card.type-solution {
+            border-top-color: #10b981;
+        }
+
+        /* 綠色系：解法/價值/成效 */
+        .card.type-tech {
+            border-top-color: #8b5cf6;
+        }
+
+        /* 紫色系：技術/功能 */
+        .card.type-biz {
+            border-top-color: #f59e0b;
+        }
+
+        /* 黃色系：商業/通路 */
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+        }
+
+        /* 內容列表樣式 */
+        ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            flex-grow: 1;
+        }
+
+        li {
+            margin-bottom: 12px;
+            padding-left: 20px;
+            position: relative;
+            font-size: 0.95rem;
+        }
+
+        li::before {
+            content: "•";
+            color: var(--primary);
+            font-weight: bold;
+            position: absolute;
+            left: 0;
+            top: 0;
+        }
+
+        /* 強調文字標籤 (用於技術或特別短語) */
+        .tag {
+            display: inline-block;
+            background: var(--tag-bg);
+            color: var(--tag-text);
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-right: 5px;
+            margin-bottom: 5px;
+        }
+
+        .highlight-arrow {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #f8fafc;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
+            border: 1px dashed #cbd5e1;
+        }
+
+        .arrow-icon {
+            color: #94a3b8;
+            font-size: 1.2rem;
+        }
+
+        /* 頁尾 */
+        footer {
+            text-align: center;
+            margin-top: 60px;
+            color: #94a3b8;
+            font-size: 0.9rem;
+        }
+
+        /* --- RWD 手機版適配 --- */
+        @media (max-width: 900px) {
+            .grid-wrapper {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .grid-wrapper {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 1.8rem;
+            }
+
+            body {
+                padding: 20px 10px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <header>
+            <h1>Thinking Framework</h1>
+            <p class="subtitle">地理空間資料整合平台｜產品邏輯與架構分析</p>
+        </header>
+
+        <div class="grid-wrapper">
+
+            <div class="card type-user">
+                <div class="card-title">使用者 (Users)</div>
+                <ul>
+                    <li><strong>地理科教師</strong></li>
+                    <li><strong>需要數據的研究者</strong></li>
+                </ul>
+            </div>
+
+            <div class="card type-problem">
+                <div class="card-title">核心問題 (Core Problems)</div>
+                <ul>
+                    <li>資料分散、查找成本高。</li>
+                    <li>紙本單一、無法複製與取用。</li>
+                    <li>人工難以即時更新數據。</li>
+                    <li>人力查找容易出錯。</li>
+                </ul>
+            </div>
+
+            <div class="card type-problem">
+                <div class="card-title">現況限制 (Constraints)</div>
+                <ul>
+                    <li>無相關經驗與現成整合工具或技術。</li>
+                    <li>專案執行人力有限。</li>
+                </ul>
+            </div>
+
+            <div class="card type-user">
+                <div class="card-title">產品目標 (Product Goal)</div>
+                <div style="font-size: 1.1rem; font-weight: 600; color: #2563eb; text-align: center; padding: 20px 0;">
+                    讓教師能快速取得<br>可用數據
+                </div>
+            </div>
+
+            <div class="card type-solution">
+                <div class="card-title">核心解法 (Core Solution)</div>
+                <ul>
+                    <li><strong>API 串接：</strong>串接多個國際開放資料 API，集中抓取與更新。</li>
+                    <li><strong>資料標準化：</strong>設計結構化資料模型（統一欄位、分類、單位），提升可查性。</li>
+                    <li><strong>友善介面：</strong>做成可搜尋/可篩選的使用介面，支援教學、研究與命題。</li>
+                </ul>
+            </div>
+
+            <div class="card type-solution">
+                <div class="card-title">產出價值 (Value Prop)</div>
+                <div class="highlight-arrow">
+                    <div>降低查找資料的時間</div>
+                    <div class="arrow-icon">➔</div>
+                    <div>提升教師出題的便利性與豐富性</div>
+                </div>
+            </div>
+
+            <div class="card type-tech">
+                <div class="card-title">關鍵功能 / 模組</div>
+                <div>
+                    <span class="tag">資料搜尋 / 篩選</span>
+                    <span class="tag">CSV 下載</span>
+                </div>
+            </div>
+
+            <div class="card type-solution">
+                <div class="card-title">成效 (Outcome)</div>
+                <ul>
+                    <li><strong>網站回訪率：</strong>例如每週使用次數。</li>
+                    <li><strong>效率提升：</strong>內部人力時數釋放。</li>
+                </ul>
+            </div>
+
+            <div class="card type-tech">
+                <div class="card-title">技術 (Tech Stack)</div>
+                <div>
+                    <span class="tag" style="background:#fff7ed; color:#c2410c;">PYTHON</span>
+                    <span class="tag" style="background:#fff7ed; color:#c2410c;">API</span>
+                    <span class="tag" style="background:#fff7ed; color:#c2410c;">JSON</span>
+                </div>
+            </div>
+
+            <div class="card type-biz">
+                <div class="card-title">通路 (Channels)</div>
+                <ul>
+                    <li>紙本廣告 QR Code</li>
+                    <li>社群媒體推廣</li>
+                    <li>研習分享</li>
+                    <li>口碑傳遞</li>
+                </ul>
+            </div>
+
+            <div class="card type-biz">
+                <div class="card-title">成本 (Cost Structure)</div>
+                <ul>
+                    <li><strong>開發時間：</strong>資料整合、資料模型設計、前端介面開發。</li>
+                    <li><strong>維運成本：</strong>主機費用、資料來源變動的維護。</li>
+                    <li><strong>人力投入：</strong>內容更新與品質維護。</li>
+                </ul>
+            </div>
+
+            <div class="card type-biz">
+                <div class="card-title">收入 (Revenue)</div>
+                <div style="background: #f8fafc; padding: 15px; border-radius: 8px; font-size: 0.9rem; color: #64748b;">
+                    <strong>N/A (非營收導向產品)</strong><br>
+                    定位為品牌建立與專業形象展示。
+                </div>
+            </div>
+
+        </div>
+
+        <footer>
+            &copy; 2026 Thinking Framework Portfolio. Created for Professional Presentation.
+        </footer>
+    </div>
+
+</body>
+
+</html>
